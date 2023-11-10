@@ -1,0 +1,10 @@
+boto3==1.26.40
+botocore==1.29.40
+ConfigArgParse==1.5.3
+Jinja2==3.1.2
+jmespath==1.0.1
+MarkupSafe==2.1.3
+python-dateutil==2.8.2
+s3transfer==0.6.0
+six==1.16.0
+urllib3==1.26.13
