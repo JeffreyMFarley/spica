@@ -1,0 +1,14 @@
+# Test/dev dependencies for spica. Install with:
+#   pip install -r requirements-dev.txt
+#
+# Runtime deps live in requirements.txt; these are only needed to run the
+# test harness.
+
+-r requirements.txt
+
+# Test runner + coverage
+pytest>=7,<9
+pytest-cov>=4,<6
+
+# Thin wand shim client posts fixtures over HTTP to the proxy.
+requests>=2.28,<3
