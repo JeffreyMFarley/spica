@@ -1,0 +1,98 @@
+{
+  "2eab-915b-a106-8724-3d30-f866-0df9-dd23": {
+    "scenario": "ec2:DescribeSubnets",
+    "service": "ec2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeSubnets\",\"params\":{\"Filters\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+  },
+  "b2df-1195-82cd-5e57-d300-c66a-96cb-ce8a": {
+    "scenario": "ec2:DescribeNetworkInterfaces",
+    "service": "ec2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeNetworkInterfaces\",\"params\":{\"Filters\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+  },
+  "7de8-ebd0-f6c5-4d74-6969-9b11-6237-1859": {
+    "scenario": "ec2:DescribeNatGateways",
+    "service": "ec2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeNatGateways\",\"params\":{\"Filter\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+  },
+  "6851-092e-80dd-428b-ee2b-9764-f713-860c": {
+    "scenario": "ec2:DescribeInternetGateways",
+    "service": "ec2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeInternetGateways\",\"params\":{\"Filters\":[{\"Name\":\"attachment.vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+  },
+  "08f0-97e9-4d9c-c765-91ee-d251-1ee1-7dea": {
+    "scenario": "ec2:DescribeNetworkAcls",
+    "service": "ec2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeNetworkAcls\",\"params\":{\"Filters\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+  },
+  "26e7-26d6-180d-8004-813b-a92d-982b-434d": {
+    "scenario": "ec2:DescribeSecurityGroups",
+    "service": "ec2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeSecurityGroups\",\"params\":{\"Filters\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+  },
+  "8836-34b5-9754-6f09-bf25-c8fb-680b-3a3e": {
+    "scenario": "ec2:DescribeInstances",
+    "service": "ec2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeInstances\",\"params\":{\"Filters\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+  },
+  "17fe-f193-794c-2e58-84b7-5d7c-2ace-f1f0": {
+    "scenario": "lambda:ListFunctions",
+    "service": "lambda",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"ListFunctions\",\"params\":{},\"service\":\"lambda\"}"
+  },
+  "e282-5549-7ae0-c925-dda3-5030-5477-63e1": {
+    "scenario": "rds:DescribeDBInstances",
+    "service": "rds",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeDBInstances\",\"params\":{},\"service\":\"rds\"}"
+  },
+  "cfdc-9b14-c9a1-7f82-c422-0c9f-d123-00af": {
+    "scenario": "elbv2:DescribeLoadBalancers",
+    "service": "elbv2",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeLoadBalancers\",\"params\":{},\"service\":\"elbv2\"}"
+  },
+  "ebeb-a89e-6e18-83a3-cc07-397a-b6f0-ab53": {
+    "scenario": "autoscaling:DescribeAutoScalingGroups",
+    "service": "autoscaling",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"DescribeAutoScalingGroups\",\"params\":{},\"service\":\"autoscaling\"}"
+  },
+  "5c62-076c-ed3b-71a3-6d45-e604-b840-aad7": {
+    "scenario": "eks:ListClusters",
+    "service": "eks",
+    "captured": "2026-07-17",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"ListClusters\",\"params\":{},\"service\":\"eks\"}"
+  }
+}

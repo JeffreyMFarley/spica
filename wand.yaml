@@ -1,0 +1,17 @@
+name: wand
+
+proxy:
+  port: 8877
+  mode: ${WAND_MODE:-ci}
+
+services:
+  - name: http
+    upstream_url: http://127.0.0.1:8080
+
+fixtures:
+  path: __fixtures__
+  index: __fixtures__/index.json
+
+claude:
+  model: claude-sonnet-4-6
+  # api key read from ANTHROPIC_API_KEY

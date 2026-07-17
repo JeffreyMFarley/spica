@@ -23,7 +23,13 @@ install: ## Install test/dev dependencies into the active environment
 	$(PYTHON) -m pip install -r requirements-dev.txt
 
 test: ## Run the whole suite (wand proxy tests skip if no proxy is up)
-	$(PYTEST)
+	WAND_MODE=ci $(PYTEST)
+
+capture: ## Capture the test suite fixtures
+	WAND_MODE=capture $(PYTEST)
+
+livetest: ## Capture the test suite fixtures
+	WAND_MODE=livetest $(PYTEST)
 
 cov: ## Run the suite with a coverage report for src/
 	$(PYTEST) --cov=src --cov-report=term-missing
