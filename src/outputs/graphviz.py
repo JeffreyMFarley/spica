@@ -18,31 +18,40 @@ REPLACE_TABLE = str.maketrans(
     }
 )
 
-TOP_SVC = ["ASG", "ELBv1", "ELBv2", "EPT-GWLB", "VPGW", "TG", "EKS", "Lambda", "EPT-I"]
 SUBNET_SVC = ["EC2", "ENI", "NAT"]
 BOTTOM_SVC = ["RDS"]
-NW_SVC = ["ACL", "EPT-GW", "IGW", "RTB", "PEER", "SG"]
+
+# The "doors" into the VPC — all the ways traffic gets in. Collected into one
+# tier so the ingress story reads as a single band under the VPC header,
+# instead of being scattered from level 3 to level 18.
+INGRESS_SVC = ["IGW", "VPGW", "PEER", "EPT-GW", "EPT-GWLB", "EPT-I"]
+
+# Policy/rule nodes — these describe routing and access rules, not traffic
+# hops, so they're kept out of the main top-down flow column.
+POLICY_SVC = ["ACL", "RTB", "SG"]
+
+# Which synthetic source a door connects to.
+INET_DOORS = ["IGW", "PEER", "EPT-GW", "EPT-GWLB", "EPT-I"]
+ONPREM_DOORS = ["VPGW"]
 
 LEVELS = [
+    ["INET"],  # synthetic Internet / on-prem source (see to_graphviz)
     ["R53"],
     ["HZ"],
     ["VPC"],
-    ["VPGW"],
-    ["EPT-GWLB"],
-    ["ACL"],
-    ["ASG"],
+    INGRESS_SVC,  # ingress tier: the doors in
     ["ELBv1", "ELBv2"],
     ["TG"],
+    ["ASG"],
     ["EKS"],
     ["Lambda"],
-    ["EPT-I"],
+    ["ACL"],
     ["SUBN"],
     ["EC2", "NAT"],
     ["ENI"],
     ["RDS"],
     ["RTB"],
     ["SG"],
-    ["EPT-GW", "PEER", "IGW"],
     ["S3"],
 ]
 
@@ -74,16 +83,31 @@ digraph G {
     edge [fontsize=9 color="grey70"]
     // newrank=true
 
-    subgraph { 
+    subgraph {
         {% for svc in route53_services -%}
         {{ svc }}
         {% endfor %}
     }
+    {% if has_internet %}
+    INET [label="Internet / on-prem" image="{{ inet_icon }}"]
+    {% endif %}
 
     subgraph cluster_10 {
         label="{{ vpc_name }}"
 
-        subgraph cluster_91 { 
+        // -- Ingress tier: the doors in, pinned under the VPC header ----------
+        subgraph cluster_ingress {
+            label="ingress"
+            labeljust=l
+            style="rounded,dashed"
+            color="purple3"
+            rank="source"
+            {% for svc in ingress_services -%}
+            {{ svc }}
+            {% endfor %}
+        }
+
+        subgraph cluster_91 {
             style="invis"
             {% for az in azs -%}
             subgraph cluster_{{ az.cluster_id }} {
@@ -121,9 +145,10 @@ digraph G {
             {% endfor %}
         }
 
-        subgraph cluster_93 {
+        // -- Policy rail: rules, not hops -------------------------------------
+        subgraph cluster_policy {
             style="invis"
-            {% for svc in nw_services -%}
+            {% for svc in policy_services -%}
             {{ svc }}
             {% endfor %}
         }
@@ -140,6 +165,9 @@ digraph G {
     // { rank=same; {% for svc in svcs %}{{ svc | graphviz_id }}; {% endfor %} }
     {% endfor %}
 
+    {% for edge in ingress_edges -%}
+    {{ edge }}
+    {% endfor %}
     {% for edge in edges -%}
     {{ edge }}
     {% endfor %}
@@ -203,6 +231,7 @@ def graphviz_id(s: str) -> str:
 def graphviz_icon(service: str, instance_type: str = None) -> str:
     MAP = {
         "ACL": "ACL",
+        "INET": "INET",
         "ASG": "ASG",
         "EC2": "EC2",
         "EKS": "EKS",
@@ -271,7 +300,7 @@ def edge(source: ServiceInstance, target: ServiceInstance, vpc: VPC):
             attrs["weight"] = 10
             attrs["style"] = "invis"
     elif target.service_name == "RTB":
-        attrs["color"]: "mediumpurple"
+        attrs["color"] = "mediumpurple"
 
     s_attrs = " ".join([f'{k}="{v}"' for k, v in attrs.items()])
     return f"{ graphviz_id(source.id) } -> { graphviz_id(target.id) } [{s_attrs}]"
@@ -327,13 +356,17 @@ def to_graphviz(vpc: VPC, stream, s3_buckets=None):
     route53_services: List[ServiceInstance] = []
     top_services: List[ServiceInstance] = []
     bottom_services: List[ServiceInstance] = []
-    nw_services: List[ServiceInstance] = []
+    ingress_services: List[ServiceInstance] = []
+    policy_services: List[ServiceInstance] = []
     # S3 is account/region-level, not part of vpc.services; pinned to the
     # bottom of every VPC diagram from the shared context list.
     s3_services: List[ServiceInstance] = [node(b) for b in (s3_buckets or [])]
     ranks: Dict[str, list] = defaultdict(list)
     enis: List[NetworkInterface] = []
     rtbs: List[ServiceInstance] = []
+    # Synthetic Internet/on-prem -> door edges, and whether to draw the source.
+    ingress_edges: List[str] = []
+    has_internet = False
 
     # Route the services to the appropriate area
     for v in vpc.services:
@@ -341,14 +374,26 @@ def to_graphviz(vpc: VPC, stream, s3_buckets=None):
         nv = node(v)
         display_outside_sn = v.id in connected and v.id not in contained
 
-        if l < start_vpc:
+        if v.service_name in INGRESS_SVC:
+            # The doors ALWAYS render — showing the door exists is the point,
+            # even when nothing else in the scan references it.
+            ingress_services.append(nv)
+            if v.service_name in INET_DOORS:
+                has_internet = True
+                ingress_edges.append(f'INET -> {graphviz_id(v.id)} [color="grey60"]')
+            elif v.service_name in ONPREM_DOORS:
+                has_internet = True
+                ingress_edges.append(
+                    f'INET -> {graphviz_id(v.id)} [color="grey60" style=dashed]'
+                )
+        elif l < start_vpc:
             route53_services.append(nv)
         elif l < end_top and v.id not in contained:
             top_services.append(nv)
         elif v.service_name in BOTTOM_SVC and display_outside_sn:
             bottom_services.append(nv)
-        elif v.service_name in NW_SVC and display_outside_sn:
-            nw_services.append(nv)
+        elif v.service_name in POLICY_SVC and display_outside_sn:
+            policy_services.append(nv)
         # else:
         #     print(
         #         f'Unrouted {v}\t{l}, {nv}, {display_outside_sn}',
@@ -384,7 +429,7 @@ def to_graphviz(vpc: VPC, stream, s3_buckets=None):
             nv = node(v)
             display_in_az = v.id in availzone.service_ids and v.id in single_az
 
-            if l < end_top and display_in_az:
+            if l < end_top and display_in_az and v.service_name not in INGRESS_SVC:
                 az.top_services.append(nv)
             if l > end_subnet and display_in_az:
                 az.bottom_services.append(nv)
@@ -429,10 +474,14 @@ def to_graphviz(vpc: VPC, stream, s3_buckets=None):
             "top_services": top_services,
             "azs": azs,
             "bottom_services": bottom_services,
-            "nw_services": nw_services,
+            "ingress_services": ingress_services,
+            "policy_services": policy_services,
             "s3_services": s3_services,
             "svc_types": ranks,
+            "ingress_edges": ingress_edges,
             "edges": edges,
+            "has_internet": has_internet,
+            "inet_icon": graphviz_icon("INET"),
         }
     )
 
