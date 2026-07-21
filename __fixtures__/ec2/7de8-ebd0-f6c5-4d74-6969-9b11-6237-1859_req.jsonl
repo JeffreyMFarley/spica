@@ -1,2 +1,2 @@
 {"wand_version":"1","service":"ec2","captured":"2026-07-21"}
-{"operation":"DescribeNatGateways","params":{"Filter":[{"Name":"vpc-id","Values":["vpc-ffc39a9a"]}]},"service":"ec2"}
+{"operation":"DescribeNatGateways","params":{"Filters":[{"Name":"vpc-id","Values":["vpc-ffc39a9a"]}]},"service":"ec2"}

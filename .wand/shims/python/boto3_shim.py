@@ -34,6 +34,7 @@ real ``boto3`` package when its directory is on ``sys.path``.
 import datetime
 import json
 import os
+import re
 from contextlib import contextmanager
 
 import botocore.client
@@ -48,6 +49,40 @@ FIXTURES_ROOT = os.environ.get("WAND_FIXTURES", "__fixtures__")
 
 # Response fields that change every call and must not end up in a fixture.
 _NOISE_FIELDS = ("ResponseMetadata",)
+
+# Wall-clock values must be neutralized before hashing, or a request whose
+# params carry a "now"-relative window (e.g. CloudWatch GetMetricStatistics'
+# StartTime/EndTime) hashes to a new digest on every run and never matches its
+# committed fixture. This mirrors the Go proxy's `normalize_timestamps`
+# transform (proxy/normalizer.go): the proxy applies it to proxy-routed
+# services, but AWS traffic bypasses the proxy, so the shim must do it here.
+# Matching Go, any ISO-8601 timestamp collapses to a single sentinel.
+_TIMESTAMP_SENTINEL = "1970-01-01T00:00:00Z"
+_TIMESTAMP_RE = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?"
+)
+
+
+def _normalize_scalar(value):
+    """Collapse a single wall-clock value to the sentinel, else return as-is."""
+    if isinstance(value, (datetime.datetime, datetime.date)):
+        return _TIMESTAMP_SENTINEL
+    if isinstance(value, str) and _TIMESTAMP_RE.search(value):
+        return _TIMESTAMP_SENTINEL
+    return value
+
+
+def _normalize_request(node):
+    """Deep copy of a request payload with every timestamp neutralized.
+
+    Only the copy used for hashing/storage is normalized; the live AWS call
+    still runs against the caller's original, real-time params.
+    """
+    if isinstance(node, dict):
+        return {k: _normalize_request(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_normalize_request(v) for v in node]
+    return _normalize_scalar(node)
 
 
 def _json_default(obj):
@@ -152,7 +187,11 @@ def intercept(mode=None):
     def _patched(self, operation_name, api_params):
         service = self._service_model.service_name
         request = _request_payload(service, operation_name, api_params)
-        digest = normalized_hash(request)
+        # Hash and store the normalized request so a "now"-relative window
+        # produces a stable, replayable digest; the live call below still uses
+        # the caller's original params.
+        normalized = _normalize_request(request)
+        digest = normalized_hash(normalized)
 
         if resolved == "ci":
             cached = _read_fixture(service, digest)
@@ -160,13 +199,13 @@ def intercept(mode=None):
                 raise WandFixtureMiss(
                     f"no fixture for {service}:{operation_name} ({digest})\n"
                     f"normalized request: "
-                    f"{json.dumps(request, sort_keys=True, separators=(',', ':'))}"
+                    f"{json.dumps(normalized, sort_keys=True, separators=(',', ':'))}"
                 )
             return {**cached, "ResponseMetadata": _replay_metadata()}
 
         response = original(self, operation_name, api_params)
         if resolved == "capture":
-            _write_fixture(service, digest, request, _strip_noise(response))
+            _write_fixture(service, digest, normalized, _strip_noise(response))
         return response
 
     botocore.client.BaseClient._make_api_call = _patched

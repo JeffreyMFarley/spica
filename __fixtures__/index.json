@@ -21,7 +21,7 @@
     "captured": "2026-07-21",
     "captured_by": "wand-boto3-shim/1.0.0",
     "tests": [],
-    "request_summary": "{\"operation\":\"DescribeNatGateways\",\"params\":{\"Filter\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
+    "request_summary": "{\"operation\":\"DescribeNatGateways\",\"params\":{\"Filters\":[{\"Name\":\"vpc-id\",\"Values\":[\"vpc-ffc39a9a\"]}]},\"service\":\"ec2\"}"
   },
   "6851-092e-80dd-428b-ee2b-9764-f713-860c": {
     "scenario": "ec2:DescribeInternetGateways",
@@ -111,22 +111,6 @@
     "tests": [],
     "request_summary": "{\"operation\":\"GetBucketLocation\",\"params\":{\"Bucket\":\"lovable-tfstate-tulip\"},\"service\":\"s3\"}"
   },
-  "3c26-ace2-cbe2-e0f6-8002-5193-6238-2578": {
-    "scenario": "cloudwatch:ListMetrics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"ListMetrics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"}],\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\"},\"service\":\"cloudwatch\"}"
-  },
-  "38cc-3e1f-bbc1-8d4f-141b-b20e-3cf4-ecba": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:27:35Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:27:35Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
   "6d64-a4e6-b1a5-a104-5a0b-5123-d298-5546": {
     "scenario": "s3:GetBucketLocation",
     "service": "s3",
@@ -134,22 +118,6 @@
     "captured_by": "wand-boto3-shim/1.0.0",
     "tests": [],
     "request_summary": "{\"operation\":\"GetBucketLocation\",\"params\":{\"Bucket\":\"tulip-ted\"},\"service\":\"s3\"}"
-  },
-  "4325-70fb-9375-f339-bcfd-5ff4-acc9-b26c": {
-    "scenario": "cloudwatch:ListMetrics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"ListMetrics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"}],\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\"},\"service\":\"cloudwatch\"}"
-  },
-  "aa25-df70-a372-38b7-8482-5f3a-7f65-9ef6": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:27:35Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:27:35Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
   },
   "a658-bda5-4937-d278-6441-fcb7-7db5-3fc6": {
     "scenario": "s3:GetBucketLocation",
@@ -159,6 +127,38 @@
     "tests": [],
     "request_summary": "{\"operation\":\"GetBucketLocation\",\"params\":{\"Bucket\":\"voice-notes-652840558528-us-east-1-an\"},\"service\":\"s3\"}"
   },
+  "3c26-ace2-cbe2-e0f6-8002-5193-6238-2578": {
+    "scenario": "cloudwatch:ListMetrics",
+    "service": "cloudwatch",
+    "captured": "2026-07-21",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"ListMetrics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"}],\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\"},\"service\":\"cloudwatch\"}"
+  },
+  "3fc3-28ff-a724-4a0a-056e-e1ce-3414-57c3": {
+    "scenario": "cloudwatch:GetMetricStatistics",
+    "service": "cloudwatch",
+    "captured": "2026-07-21",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"1970-01-01T00:00:00Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"1970-01-01T00:00:00Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
+  },
+  "4325-70fb-9375-f339-bcfd-5ff4-acc9-b26c": {
+    "scenario": "cloudwatch:ListMetrics",
+    "service": "cloudwatch",
+    "captured": "2026-07-21",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"ListMetrics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"}],\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\"},\"service\":\"cloudwatch\"}"
+  },
+  "8099-f609-1c8d-5c12-6a8e-db09-3296-c73e": {
+    "scenario": "cloudwatch:GetMetricStatistics",
+    "service": "cloudwatch",
+    "captured": "2026-07-21",
+    "captured_by": "wand-boto3-shim/1.0.0",
+    "tests": [],
+    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"1970-01-01T00:00:00Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"1970-01-01T00:00:00Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
+  },
   "9407-4cad-1e6c-6113-fff5-124a-af35-ec04": {
     "scenario": "cloudwatch:ListMetrics",
     "service": "cloudwatch",
@@ -167,108 +167,12 @@
     "tests": [],
     "request_summary": "{\"operation\":\"ListMetrics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"voice-notes-652840558528-us-east-1-an\"}],\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\"},\"service\":\"cloudwatch\"}"
   },
-  "b84d-554e-521a-81fc-6be6-0417-0167-2da2": {
+  "f10c-156b-ae66-16ea-e13e-f5f9-5e9d-149f": {
     "scenario": "cloudwatch:GetMetricStatistics",
     "service": "cloudwatch",
     "captured": "2026-07-21",
     "captured_by": "wand-boto3-shim/1.0.0",
     "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"voice-notes-652840558528-us-east-1-an\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:27:35Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:27:35Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "b966-1436-b302-a42c-ef53-92ca-85df-d6b1": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:27:46Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:27:46Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "2ca2-1139-6eb2-8f98-e999-610c-927a-e58b": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:27:47Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:27:47Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "af26-9382-cf79-03b5-1db4-972c-5c8f-cdfd": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"voice-notes-652840558528-us-east-1-an\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:27:47Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:27:47Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "75f3-3e23-f1a7-5860-9902-3792-d0e7-eb08": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:34:28+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:34:28+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "3611-b438-38c2-5411-1c3d-24a8-bfae-88df": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:34:28+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:34:28+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "72e2-456d-78f3-5abd-c29e-6ed9-0d31-9078": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"voice-notes-652840558528-us-east-1-an\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T14:34:28+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T14:34:28+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "8a08-8286-bb91-5cf1-4d5f-6649-4306-ded1": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T15:04:29+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T15:04:29+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "65f2-ddbc-e2fb-7fb6-17a9-e8b5-6178-3615": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T15:04:30+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T15:04:30+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "da08-5e9f-24c5-4cec-8bc8-3834-ac54-8e37": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"voice-notes-652840558528-us-east-1-an\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T15:04:30+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T15:04:30+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "e27b-7b7a-f1fe-14bf-2b3c-d90d-d471-0259": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"lovable-tfstate-tulip\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T15:08:45+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T15:08:45+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "3d44-d369-b780-180c-3d33-f92c-d09a-c64c": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"tulip-ted\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T15:08:46+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T15:08:46+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
-  },
-  "57c1-b9d7-2222-e1eb-a137-e498-1ed7-1d29": {
-    "scenario": "cloudwatch:GetMetricStatistics",
-    "service": "cloudwatch",
-    "captured": "2026-07-21",
-    "captured_by": "wand-boto3-shim/1.0.0",
-    "tests": [],
-    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"voice-notes-652840558528-us-east-1-an\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"2026-07-21T15:08:46+00:00\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"2026-07-19T15:08:46+00:00\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
+    "request_summary": "{\"operation\":\"GetMetricStatistics\",\"params\":{\"Dimensions\":[{\"Name\":\"BucketName\",\"Value\":\"voice-notes-652840558528-us-east-1-an\"},{\"Name\":\"StorageType\",\"Value\":\"StandardStorage\"}],\"EndTime\":\"1970-01-01T00:00:00Z\",\"MetricName\":\"BucketSizeBytes\",\"Namespace\":\"AWS/S3\",\"Period\":86400,\"StartTime\":\"1970-01-01T00:00:00Z\",\"Statistics\":[\"Average\"]},\"service\":\"cloudwatch\"}"
   }
 }
