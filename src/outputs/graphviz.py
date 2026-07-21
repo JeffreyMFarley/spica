@@ -19,20 +19,20 @@ REPLACE_TABLE = str.maketrans(
 )
 
 SUBNET_SVC = ["EC2", "ENI", "NAT"]
-BOTTOM_SVC = ["RDS"]
+BOTTOM_SVC = ["RDS", "CACHE", "EFS", "EBS"]
 
 # The "doors" into the VPC — all the ways traffic gets in. Collected into one
 # tier so the ingress story reads as a single band under the VPC header,
 # instead of being scattered from level 3 to level 18.
-INGRESS_SVC = ["IGW", "VPGW", "PEER", "EPT-GW", "EPT-GWLB", "EPT-I"]
+INGRESS_SVC = ["IGW", "EIGW", "VPGW", "TGW", "PEER", "EPT-GW", "EPT-GWLB", "EPT-I"]
 
 # Policy/rule nodes — these describe routing and access rules, not traffic
 # hops, so they're kept out of the main top-down flow column.
 POLICY_SVC = ["ACL", "RTB", "SG"]
 
 # Which synthetic source a door connects to.
-INET_DOORS = ["IGW", "PEER", "EPT-GW", "EPT-GWLB", "EPT-I"]
-ONPREM_DOORS = ["VPGW"]
+INET_DOORS = ["IGW", "EIGW", "PEER", "EPT-GW", "EPT-GWLB", "EPT-I"]
+ONPREM_DOORS = ["VPGW", "TGW"]
 
 LEVELS = [
     ["INET"],  # synthetic Internet / on-prem source (see to_graphviz)
@@ -49,7 +49,7 @@ LEVELS = [
     ["SUBN"],
     ["EC2", "NAT"],
     ["ENI"],
-    ["RDS"],
+    ["RDS", "CACHE", "EFS", "EBS"],
     ["RTB"],
     ["SG"],
     ["S3"],
@@ -69,9 +69,11 @@ NETWORK = [
     "RTB",
     "SG",
     "TG",
+    "TGW",
+    "EIGW",
     "VPGW",
 ]
-STORAGE = ["EPT-GW", "RDS"]
+STORAGE = ["EPT-GW", "RDS", "CACHE", "EFS", "EBS"]
 COMPUTE = ["ASG", "EC2", "Lambda", "EKS"]
 
 TEMPLATE = """
@@ -233,7 +235,11 @@ def graphviz_icon(service: str, instance_type: str = None) -> str:
         "ACL": "ACL",
         "INET": "INET",
         "ASG": "ASG",
+        "CACHE": "CACHE",
+        "EBS": "EBS",
         "EC2": "EC2",
+        "EFS": "EFS",
+        "EIGW": "IGW",
         "EKS": "EKS",
         "ELBv1": "LB",
         "ELBv2": "ALB",
@@ -252,6 +258,7 @@ def graphviz_icon(service: str, instance_type: str = None) -> str:
         "SG": "SG",
         # 'SUBN': '',
         "TG": "TG",
+        "TGW": "TGW",
         "VPGW": "VPNGW",
     }
 

@@ -16,6 +16,8 @@ class Context:
     eks_client: any
     asg_client: any
     rds_client: any
+    elasticache_client: any
+    efs_client: any
     ec2: any
     route53: any
     # Account-global S3 buckets for this region, scanned once (see src/s3.py).
@@ -38,6 +40,8 @@ def build_context(session, region: str, options: any) -> Context:
         session.client("eks", region_name=region),
         session.client("autoscaling", region_name=region),
         session.client("rds", region_name=region),
+        session.client("elasticache", region_name=region),
+        session.client("efs", region_name=region),
         session.resource("ec2", region_name=region),
         session.client("route53", region_name=region),
     )

@@ -7,8 +7,11 @@ from botocore.exceptions import ClientError
 from src.context import Context
 from src.service import (
     AutoServiceGroup,
+    EbsVolume,
     EC2Instance,
+    EfsFileSystem,
     EksCluster,
+    ElastiCacheCluster,
     HostedZone,
     LambdaFunction,
     LoadBalancer,
@@ -19,6 +22,7 @@ from src.service import (
     ServiceInstance,
     Subnet,
     TargetGroup,
+    TransitGateway,
     VpcEndpoint,
 )
 
@@ -414,6 +418,122 @@ class VPC(object):
             _id = peering["VpcPeeringConnectionId"]
             self._services[_id] = ServiceInstance(peering, "PEER", _id)
 
+    def describe_volumes(self, context: Context):
+        # EBS volumes are not VPC-scoped; attach them via the EC2 instances
+        # already discovered in this VPC, so describe_ec2s must run first.
+        instance_ids = [
+            svc.id for svc in self._services.values() if svc.service_name == "EC2"
+        ]
+        if not instance_ids:
+            return
+
+        volumes = context.vpc_client.describe_volumes(
+            Filters=[{"Name": "attachment.instance-id", "Values": instance_ids}]
+        )["Volumes"]
+
+        for vol in volumes:
+            _id = vol["VolumeId"]
+            self._services[_id] = EbsVolume(
+                vol, "EBS", _id, vol["VolumeType"], vol.get("Size", 0)
+            )
+
+            # Add relations: each attached instance owns the volume.
+            for att in vol.get("Attachments", []):
+                self._add_relation(att["InstanceId"], _id)
+            self.azs[vol["AvailabilityZone"]].service_ids.append(_id)
+
+    def describe_elasticaches(self, context: Context):
+        # Cache clusters carry a subnet-group name, not a VpcId; resolve the
+        # group to its VpcId (and subnets) to filter clusters to this VPC.
+        groups = context.elasticache_client.describe_cache_subnet_groups()[
+            "CacheSubnetGroups"
+        ]
+        group_vpc = {g["CacheSubnetGroupName"]: g["VpcId"] for g in groups}
+        group_subnets = {
+            g["CacheSubnetGroupName"]: [s["SubnetIdentifier"] for s in g["Subnets"]]
+            for g in groups
+        }
+
+        clusters = context.elasticache_client.describe_cache_clusters(
+            ShowCacheNodeInfo=True
+        )["CacheClusters"]
+
+        for cluster in clusters:
+            group_name = cluster.get("CacheSubnetGroupName")
+            if group_vpc.get(group_name) != self.id:
+                continue
+
+            _id = cluster["CacheClusterId"]
+            self._services[_id] = ElastiCacheCluster(
+                cluster,
+                "CACHE",
+                _id,
+                cluster["CacheNodeType"],
+                cluster.get("NumCacheNodes", 1),
+            )
+
+            # Add relations
+            for sn in group_subnets.get(group_name, []):
+                self.subnets[sn].append(_id)
+            for sg in cluster.get("SecurityGroups", []):
+                self._add_relation(_id, sg["SecurityGroupId"])
+            az = cluster.get("PreferredAvailabilityZone")
+            if az and az != "Multiple":
+                self.azs[az].service_ids.append(_id)
+
+    def describe_efs(self, context: Context):
+        # File systems are not VPC-scoped; a file system belongs to this VPC if
+        # any of its mount targets lives here. Mount targets pin it to subnets.
+        GB = 1024**3
+        filesystems = context.efs_client.describe_file_systems()["FileSystems"]
+
+        for fs in filesystems:
+            fs_id = fs["FileSystemId"]
+            targets = context.efs_client.describe_mount_targets(FileSystemId=fs_id)[
+                "MountTargets"
+            ]
+
+            in_vpc = [mt for mt in targets if mt.get("VpcId") == self.id]
+            if not in_vpc:
+                continue
+
+            size_gb = fs.get("SizeInBytes", {}).get("Value", 0) / GB
+            self._services[fs_id] = EfsFileSystem(fs, "EFS", fs_id, size_gb)
+
+            # Add relations: mount targets place the file system in subnets/AZs.
+            for mt in in_vpc:
+                self.subnets[mt["SubnetId"]].append(fs_id)
+                if "AvailabilityZoneName" in mt:
+                    self.azs[mt["AvailabilityZoneName"]].service_ids.append(fs_id)
+
+    def describe_transit_gateways(self, context: Context):
+        attachments = context.vpc_client.describe_transit_gateway_vpc_attachments(
+            Filters=[{"Name": "vpc-id", "Values": [self.id]}]
+        )["TransitGatewayVpcAttachments"]
+
+        for att in attachments:
+            # Key the node by the transit gateway id so route-table edges
+            # (RTB -> TransitGatewayId) resolve to this node.
+            _id = att["TransitGatewayId"]
+            self._services[_id] = TransitGateway(att, "TGW", _id)
+
+    def describe_eigws(self, context: Context):
+        # Egress-only internet gateways (IPv6). No VPC filter param, so filter
+        # by attachment. Keying by id lets route-table edges resolve here.
+        eigws = context.vpc_client.describe_egress_only_internet_gateways()[
+            "EgressOnlyInternetGateways"
+        ]
+
+        for eigw in eigws:
+            attached = any(
+                a.get("VpcId") == self.id for a in eigw.get("Attachments", [])
+            )
+            if not attached:
+                continue
+
+            _id = eigw["EgressOnlyInternetGatewayId"]
+            self._services[_id] = ServiceInstance(eigw, "EIGW", _id)
+
     # ----------------------------------------------------------------------------
 
     def cost_per_month(self):
@@ -430,9 +550,13 @@ class VPC(object):
 
         self.describe_asgs(context)
         self.describe_ec2s(context)
+        self.describe_volumes(context)  # after describe_ec2s: needs instance ids
         self.describe_ekss(context)
+        self.describe_elasticaches(context)
+        self.describe_efs(context)
         self.describe_elbs(context)
         self.describe_elbsV2(context)
+        self.describe_eigws(context)
         self.describe_enis(context)
         self.describe_hosted_zones(context)
         self.describe_igws(context)
@@ -440,6 +564,7 @@ class VPC(object):
         self.describe_nats(context)
         self.describe_rdss(context)
         self.describe_subnets(context)
+        self.describe_transit_gateways(context)
         self.describe_vpc_epts(context)
         self.describe_vpgws(context)
         self.describe_vpc_peering_connections(context)
@@ -450,7 +575,6 @@ class VPC(object):
             self.describe_sgs(context)
 
         # dhcpOpts https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.describe_dhcp_optionscontext
-        # Volume
 
     def to_csv(self, prefix, stream):
         fwd = f"{prefix}{self.name}\t"

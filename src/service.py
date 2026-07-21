@@ -255,6 +255,112 @@ class S3Bucket(ServiceInstance):
         return self.tier
 
 
+@dataclass
+class EbsVolume(ServiceInstance):
+    # EBS volume type (a describe_volumes VolumeType) and provisioned size in
+    # GB. Both come from describe_volumes — see VPC.describe_volumes.
+    volume_type: str = "gp2"
+    size_gb: int = 0
+
+    # Price per GB-month by volume type (us-east-1). IOPS/throughput charges on
+    # io1/io2/gp3 are ignored, matching the coarse estimates used elsewhere.
+    COST_PER_GB = {
+        "gp3": 0.08,
+        "gp2": 0.10,
+        "io1": 0.125,
+        "io2": 0.125,
+        "st1": 0.045,
+        "sc1": 0.015,
+        "standard": 0.05,
+    }
+
+    @property
+    def cost_per_month(self):
+        return self.COST_PER_GB.get(self.volume_type, 0.00) * self.size_gb
+
+    @property
+    def type_info(self):
+        return self.volume_type
+
+
+@dataclass
+class ElastiCacheCluster(ServiceInstance):
+    instance_type: str = ""
+    num_nodes: int = 1
+
+    @property
+    def cost_per_month(self):
+        COST_PER_TYPE = {
+            "cache.t2.micro": 0.017,
+            "cache.t2.small": 0.034,
+            "cache.t2.medium": 0.068,
+            "cache.t3.micro": 0.017,
+            "cache.t3.small": 0.034,
+            "cache.t3.medium": 0.068,
+            "cache.t4g.micro": 0.016,
+            "cache.t4g.small": 0.032,
+            "cache.t4g.medium": 0.064,
+            "cache.m5.large": 0.156,
+            "cache.m5.xlarge": 0.311,
+            "cache.m6g.large": 0.147,
+            "cache.r5.large": 0.216,
+            "cache.r6g.large": 0.206,
+        }
+        return COST_PER_TYPE.get(self.instance_type, 0.00) * self.num_nodes * 24 * 30
+
+    @property
+    def name(self):
+        return self.details.get("CacheClusterId", self.instance_name)
+
+    @property
+    def label(self):
+        return self.name
+
+    @property
+    def type_info(self):
+        return self.instance_type
+
+
+@dataclass
+class EfsFileSystem(ServiceInstance):
+    # Average stored size in GB and storage tier, from describe_file_systems.
+    size_gb: float = 0.0
+    tier: str = "StandardStorage"
+
+    # Price per GB-month by storage tier (us-east-1).
+    COST_PER_GB = {
+        "StandardStorage": 0.30,
+        "InfrequentAccessStorage": 0.016,
+    }
+
+    @property
+    def cost_per_month(self):
+        return self.COST_PER_GB.get(self.tier, 0.30) * self.size_gb
+
+    @property
+    def name(self):
+        result = self.details.get("Name") or self.instance_name
+        for tag in self.details.get("Tags", []):
+            if tag["Key"] == "Name":
+                result = tag["Value"]
+        return result
+
+    @property
+    def label(self):
+        return self.name
+
+    @property
+    def type_info(self):
+        return self.tier
+
+
+class TransitGateway(ServiceInstance):
+    @property
+    def cost_per_month(self):
+        # Per-VPC-attachment hourly charge (us-east-1); data processing extra.
+        return 0.05 * 24 * 30
+
+
 class SecurityGroup(ServiceInstance):
     @property
     def name(self):
