@@ -1,0 +1,2 @@
+{"wand_version":"1","service":"s3","captured":"2026-07-21"}
+{"operation":"GetBucketLocation","params":{"Bucket":"tulip-ted"},"service":"s3"}

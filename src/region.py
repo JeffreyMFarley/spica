@@ -56,9 +56,12 @@ FIX_FILE_NAME = str.maketrans(
 
 
 class Region:
-    def __init__(self, session, region: str, options: any) -> None:
+    def __init__(self, session, region: str, options: any, s3_buckets=None) -> None:
         self.name: str = region
         self.context = build_context(session, region, options)
+        # S3 is account-global; buckets for this region are scanned once
+        # globally (see src/s3.py) and handed in here.
+        self.context.s3_buckets = s3_buckets or []
         self.vpcs: List[VPC] = []
 
     def add_vpc(self, vpc_id):
@@ -70,6 +73,12 @@ class Region:
         fwd = f"{prefix}{self.context.profile}\t{self.name}\t"
         for v in self.vpcs:
             v.to_csv(fwd, stream)
+
+        # Account/region-level S3 buckets, emitted once per region (the VPC
+        # name column is blank since buckets are not VPC-scoped).
+        s3_fwd = f"{fwd}\t"
+        for bucket in self.context.s3_buckets:
+            bucket.to_csv(s3_fwd, stream)
 
     def to_graphviz(self, directory, cost_threshhold: float):
         for v in self.vpcs:
@@ -85,7 +94,7 @@ class Region:
             full_path = os.path.join(full_dir, f"{file_title}.gv")
 
             with io.open(full_path, "w") as f:
-                to_graphviz(v, f)
+                to_graphviz(v, f, self.context.s3_buckets)
                 f.flush()
 
             render(full_path)

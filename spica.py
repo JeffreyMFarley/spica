@@ -6,6 +6,7 @@ import boto3
 import configargparse
 from botocore.exceptions import ClientError, ProfileNotFound
 from src.region import Region, US_REGIONS, ALL_REGIONS
+from src.s3 import scan_all_buckets
 
 # logger config
 logger = logging.getLogger()
@@ -65,8 +66,12 @@ if __name__ == "__main__":
 
     regions = []
 
+    # S3 is account-global: list & locate every bucket once, then hand each
+    # region its own buckets rather than re-listing per region.
+    buckets_by_region = scan_all_buckets(session)
+
     if args.vpc:
-        region = Region(session, args.region, args)
+        region = Region(session, args.region, args, buckets_by_region.get(args.region, []))
         regions.append(region)
 
         region.add_vpc(args.vpc)
@@ -78,7 +83,7 @@ if __name__ == "__main__":
         for reg in to_scan:
             clear = " " * 80
             try:
-                region = Region(session, reg, args)
+                region = Region(session, reg, args, buckets_by_region.get(reg, []))
                 regions.append(region)
 
                 vpcs = list(region.context.ec2.vpcs.filter(Filters=[]))

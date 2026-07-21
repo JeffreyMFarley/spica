@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
 
 
 @dataclass
@@ -17,6 +18,8 @@ class Context:
     rds_client: any
     ec2: any
     route53: any
+    # Account-global S3 buckets for this region, scanned once (see src/s3.py).
+    s3_buckets: List = field(default_factory=list)
 
 
 def build_context(session, region: str, options: any) -> Context:

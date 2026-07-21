@@ -1,0 +1,2 @@
+{"wand_version":"1","service":"cloudwatch","captured":"2026-07-21"}
+{"Metrics":[{"Namespace":"AWS/S3","MetricName":"BucketSizeBytes","Dimensions":[{"Name":"BucketName","Value":"voice-notes-652840558528-us-east-1-an"},{"Name":"StorageType","Value":"StandardStorage"}]}]}

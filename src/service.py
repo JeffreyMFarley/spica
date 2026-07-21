@@ -217,6 +217,44 @@ class RdsInstance(ServiceInstance):
         return self.instance_type
 
 
+@dataclass
+class S3Bucket(ServiceInstance):
+    # Storage tier (a CloudWatch BucketSizeBytes StorageType) and the average
+    # stored size in GB. Both come from CloudWatch — see src/s3.py.
+    tier: str = "StandardStorage"
+    size_gb: float = 0.0
+
+    # Price per GB-month by storage tier (us-east-1, first pricing band).
+    COST_PER_GB = {
+        "StandardStorage": 0.023,
+        "IntelligentTieringFAStorage": 0.023,
+        "IntelligentTieringIAStorage": 0.0125,
+        "StandardIAStorage": 0.0125,
+        "StandardIASizeOverhead": 0.0125,
+        "OneZoneIAStorage": 0.01,
+        "GlacierInstantRetrievalStorage": 0.004,
+        "GlacierStorage": 0.0036,
+        "DeepArchiveStorage": 0.00099,
+        "ReducedRedundancyStorage": 0.024,
+    }
+
+    @property
+    def name(self):
+        return self.details["Name"]
+
+    @property
+    def label(self):
+        return self.name
+
+    @property
+    def cost_per_month(self):
+        return self.COST_PER_GB.get(self.tier, 0.00) * self.size_gb
+
+    @property
+    def type_info(self):
+        return self.tier
+
+
 class SecurityGroup(ServiceInstance):
     @property
     def name(self):

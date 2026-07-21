@@ -43,6 +43,7 @@ LEVELS = [
     ["RTB"],
     ["SG"],
     ["EPT-GW", "PEER", "IGW"],
+    ["S3"],
 ]
 
 NETWORK = [
@@ -123,6 +124,13 @@ digraph G {
         subgraph cluster_93 {
             style="invis"
             {% for svc in nw_services -%}
+            {{ svc }}
+            {% endfor %}
+        }
+
+        subgraph {
+            rank="sink"
+            {% for svc in s3_services -%}
             {{ svc }}
             {% endfor %}
         }
@@ -211,6 +219,7 @@ def graphviz_icon(service: str, instance_type: str = None) -> str:
         "PEER": "vpc-peering",
         "RDS": "RDS",
         "RTB": "RouteTable",
+        "S3": "S3",
         "SG": "SG",
         # 'SUBN': '',
         "TG": "TG",
@@ -278,7 +287,7 @@ def render(full_path: str):
     os.system(cmd)
 
 
-def to_graphviz(vpc: VPC, stream):
+def to_graphviz(vpc: VPC, stream, s3_buckets=None):
     # Add all edge nodes to the connected set
     connected = set(
         [x.source for x in vpc.relations] + [x.target for x in vpc.relations]
@@ -319,6 +328,9 @@ def to_graphviz(vpc: VPC, stream):
     top_services: List[ServiceInstance] = []
     bottom_services: List[ServiceInstance] = []
     nw_services: List[ServiceInstance] = []
+    # S3 is account/region-level, not part of vpc.services; pinned to the
+    # bottom of every VPC diagram from the shared context list.
+    s3_services: List[ServiceInstance] = [node(b) for b in (s3_buckets or [])]
     ranks: Dict[str, list] = defaultdict(list)
     enis: List[NetworkInterface] = []
     rtbs: List[ServiceInstance] = []
@@ -418,6 +430,7 @@ def to_graphviz(vpc: VPC, stream):
             "azs": azs,
             "bottom_services": bottom_services,
             "nw_services": nw_services,
+            "s3_services": s3_services,
             "svc_types": ranks,
             "edges": edges,
         }
