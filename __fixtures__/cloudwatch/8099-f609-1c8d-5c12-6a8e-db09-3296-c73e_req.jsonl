@@ -1,2 +1,0 @@
-{"wand_version":"1","service":"cloudwatch","captured":"2026-07-23"}
-{"operation":"GetMetricStatistics","params":{"Dimensions":[{"Name":"BucketName","Value":"tulip-ted"},{"Name":"StorageType","Value":"StandardStorage"}],"EndTime":"1970-01-01T00:00:00Z","MetricName":"BucketSizeBytes","Namespace":"AWS/S3","Period":86400,"StartTime":"1970-01-01T00:00:00Z","Statistics":["Average"]},"service":"cloudwatch"}
