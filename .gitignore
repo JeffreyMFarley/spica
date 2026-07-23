@@ -6,3 +6,7 @@ __pycache__
 .coverage
 htmlcov/
 coverage.xml
+
+# wand transient run logs (inputs to doctor/tidy, not fixtures)
+__fixtures__/livetest_divergences.jsonl
+__fixtures__/access.jsonl
