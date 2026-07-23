@@ -1,2 +1,2 @@
-{"wand_version":"1","service":"cloudwatch","captured":"2026-07-21"}
+{"wand_version":"1","service":"cloudwatch","captured":"2026-07-23"}
 {"Metrics":[{"Namespace":"AWS/S3","MetricName":"BucketSizeBytes","Dimensions":[{"Name":"BucketName","Value":"tulip-ted"},{"Name":"StorageType","Value":"StandardStorage"}]}]}

@@ -1,0 +1,2 @@
+{"wand_version":"1","service":"s3","captured":"2026-07-23"}
+{"operation":"GetBucketLocation","params":{"Bucket":"tf-hoop-state-652840558528"},"service":"s3"}

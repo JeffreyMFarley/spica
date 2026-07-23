@@ -1,0 +1,2 @@
+{"wand_version":"1","service":"cloudwatch","captured":"2026-07-23"}
+{"operation":"ListMetrics","params":{"Dimensions":[{"Name":"BucketName","Value":"tf-hoop-state-652840558528"}],"MetricName":"BucketSizeBytes","Namespace":"AWS/S3"},"service":"cloudwatch"}

@@ -1,10 +1,16 @@
 # Integration test for src/vpc.py
 # Tests real AWS API calls via boto3/botocore through the VPC class.
 # Mocking is handled externally — no mocks are used here.
+#
+# The target VPC (see _discover_a_vpc_id) is a real, populated VPC. Assertions
+# are written against its actual shape: multiple subnets across several AZs,
+# ENIs, a NAT gateway, an internet gateway, network ACLs, security groups, an
+# RDS instance, and NLB/target-group load balancing. Resource families that are
+# genuinely absent (EC2/Lambda/ASG/EKS) are asserted to come back empty rather
+# than skipped, so a regression that mis-scopes them would surface here.
 
 import logging
 import unittest
-from collections import namedtuple
 
 import boto3
 
@@ -18,6 +24,7 @@ def make_context(region_name: str = "us-east-1") -> Context:
     """Build a real Context object using live boto3 clients."""
     session = boto3.Session(region_name=region_name)
     ctx = Context.__new__(Context)
+    ctx.region = region_name
     ctx.vpc_client = session.client("ec2", region_name=region_name)
     ctx.asg_client = session.client("autoscaling", region_name=region_name)
     ctx.eks_client = session.client("eks", region_name=region_name)
@@ -30,8 +37,18 @@ def make_context(region_name: str = "us-east-1") -> Context:
 
 
 def _discover_a_vpc_id(context: Context) -> str:
-    """Return the first available VPC id in the account/region."""
-    return "vpc-ffc39a9a"
+    """Return the id of the populated VPC these integration tests target."""
+    return "vpc-0dc21f95a61d09691"
+
+
+def services_of(vpc: VPC, service_name: str) -> list:
+    """All discovered services of a given kind.
+
+    Services expose ``service_name`` (e.g. "SUBN", "ENI", "ELBv2") — NOT a
+    ``type`` attribute. Filtering on the wrong attribute silently yields an
+    empty list and turns every assertion below into a no-op.
+    """
+    return [s for s in vpc.services if s.service_name == service_name]
 
 
 class TestVPCInstantiation(unittest.TestCase):
@@ -70,48 +87,39 @@ class TestVPCDescribeSubnets(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_subnets(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    @unittest.skip('Not available in target VPC')
     def test_subnets_populated(self):
-        services = list(self.vpc.services)
-        subnet_services = [s for s in services if getattr(s, "type", None) == "SUBN"]
-        self.assertGreater(len(subnet_services), 0)
+        self.assertGreater(len(services_of(self.vpc, "SUBN")), 0)
 
-    @unittest.skip('Not available in target VPC')
     def test_subnet_service_has_id(self):
-        services = list(self.vpc.services)
-        subnet_services = [s for s in services if getattr(s, "type", None) == "SUBN"]
-        first = subnet_services[0]
-        self.assertTrue(hasattr(first, "id"))
-        self.assertTrue(first.id.startswith("subnet-"))
+        for subnet in services_of(self.vpc, "SUBN"):
+            self.assertTrue(subnet.id.startswith("subnet-"))
 
-    @unittest.skip('Not available in target VPC')
     def test_azs_populated_by_subnets(self):
         azs = list(self.vpc.availability_zones)
         self.assertGreater(len(azs), 0)
+
+    def test_every_subnet_registered_in_some_az(self):
+        # Each discovered subnet must be reachable from exactly one AZ bucket.
+        subnet_ids = {s.id for s in services_of(self.vpc, "SUBN")}
+        az_subnet_ids = [
+            sid for az in self.vpc.availability_zones for sid in az.subnet_ids
+        ]
+        self.assertEqual(sorted(subnet_ids), sorted(az_subnet_ids))
 
     def test_az_subnet_ids_non_empty(self):
         for az in self.vpc.availability_zones:
             self.assertIsInstance(az, AvailabilityZone)
             self.assertIsInstance(az.subnet_ids, list)
+            self.assertGreater(len(az.subnet_ids), 0)
 
-    @unittest.skip('Not available in target VPC')
     def test_getitem_known_subnet_returns_service(self):
-        services = list(self.vpc.services)
-        subnet_services = [s for s in services if getattr(s, "type", None) == "SUBN"]
-        known_id = subnet_services[0].id
+        known_id = services_of(self.vpc, "SUBN")[0].id
         result = self.vpc[known_id]
         self.assertIsNotNone(result)
         self.assertEqual(result.id, known_id)
 
-    @unittest.skip('Not available in target VPC')
     def test_contains_known_subnet_true(self):
-        services = list(self.vpc.services)
-        subnet_services = [s for s in services if getattr(s, "type", None) == "SUBN"]
-        known_id = subnet_services[0].id
+        known_id = services_of(self.vpc, "SUBN")[0].id
         self.assertIn(known_id, self.vpc)
 
 
@@ -125,23 +133,19 @@ class TestVPCDescribeENIs(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_enis(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
     def test_enis_populated(self):
-        services = list(self.vpc.services)
-        eni_services = [s for s in services if getattr(s, "type", None) == "ENI"]
-        # ENIs may or may not exist; if they exist they should have proper ids
+        eni_services = services_of(self.vpc, "ENI")
+        self.assertGreater(len(eni_services), 0)
         for eni in eni_services:
             self.assertTrue(eni.id.startswith("eni-"))
 
     def test_subnets_dict_updated_by_enis(self):
-        eni_services = [s for s in self.vpc.services if getattr(s, "type", None) == "ENI"]
-        if eni_services:
-            # At least one subnet should map to an ENI id
-            all_mapped = [v for vals in self.vpc.subnets.values() for v in vals]
-            self.assertGreater(len(all_mapped), 0)
+        # Every ENI pins itself to its subnet, so the subnet map is non-empty
+        # and each mapped id is a real ENI.
+        all_mapped = [v for vals in self.vpc.subnets.values() for v in vals]
+        self.assertGreater(len(all_mapped), 0)
+        for eni_id in all_mapped:
+            self.assertTrue(eni_id.startswith("eni-"))
 
 
 class TestVPCDescribeNATs(unittest.TestCase):
@@ -154,21 +158,26 @@ class TestVPCDescribeNATs(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_nats(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_nat_services_have_correct_type(self):
-        nat_services = [s for s in self.vpc.services if getattr(s, "type", None) == "NAT"]
+    def test_nat_services_populated(self):
+        nat_services = services_of(self.vpc, "NAT")
+        self.assertGreater(len(nat_services), 0)
         for nat in nat_services:
-            self.assertEqual(nat.type, "NAT")
+            self.assertEqual(nat.service_name, "NAT")
             self.assertTrue(nat.id.startswith("nat-"))
 
-    def test_nat_subnets_mapping(self):
-        nat_services = [s for s in self.vpc.services if getattr(s, "type", None) == "NAT"]
-        if nat_services:
-            all_mapped_ids = [v for vals in self.vpc.subnets.values() for v in vals]
-            self.assertGreater(len(all_mapped_ids), 0)
+    def test_nat_maps_to_subnet(self):
+        # Each NAT gateway lives in a subnet; the subnet map records it.
+        all_mapped = [v for vals in self.vpc.subnets.values() for v in vals]
+        self.assertTrue(any(m.startswith("nat-") for m in all_mapped))
+
+    def test_nat_relates_to_eni(self):
+        # A NAT gateway owns a network interface (nat- -> eni-).
+        nat_ids = {n.id for n in services_of(self.vpc, "NAT")}
+        eni_edges = [
+            r for r in self.vpc.relations
+            if r.source in nat_ids and r.target.startswith("eni-")
+        ]
+        self.assertGreater(len(eni_edges), 0)
 
 
 class TestVPCDescribeIGWs(unittest.TestCase):
@@ -181,14 +190,11 @@ class TestVPCDescribeIGWs(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_igws(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_igw_services_have_correct_type(self):
-        igw_services = [s for s in self.vpc.services if getattr(s, "type", None) == "IGW"]
+    def test_igw_services_populated(self):
+        igw_services = services_of(self.vpc, "IGW")
+        self.assertGreater(len(igw_services), 0)
         for igw in igw_services:
-            self.assertEqual(igw.type, "IGW")
+            self.assertEqual(igw.service_name, "IGW")
             self.assertTrue(igw.id.startswith("igw-"))
 
 
@@ -204,28 +210,24 @@ class TestVPCDescribeACLs(unittest.TestCase):
         cls.vpc.describe_subnets(cls.context)
         cls.vpc.describe_acls(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
     def test_acl_services_populated(self):
-        acl_services = [s for s in self.vpc.services if getattr(s, "type", None) == "ACL"]
-        self.assertEqual(len(acl_services), 0)
+        self.assertGreater(len(services_of(self.vpc, "ACL")), 0)
 
     def test_acl_ids_correct_prefix(self):
-        acl_services = [s for s in self.vpc.services if getattr(s, "type", None) == "ACL"]
-        for acl in acl_services:
+        for acl in services_of(self.vpc, "ACL"):
             self.assertTrue(acl.id.startswith("acl-"))
 
     def test_acl_relations_added(self):
-        # ACLs add subnet→acl relations
-        acl_services = [s for s in self.vpc.services if getattr(s, "type", None) == "ACL"]
-        if acl_services:
-            self.assertGreater(len(self.vpc.relations), 0)
-            for rel in self.vpc.relations:
-                self.assertIsInstance(rel, Relation)
-                self.assertIsNotNone(rel.source)
-                self.assertIsNotNone(rel.target)
+        # ACLs add subnet -> acl associations; every edge must point from a
+        # real subnet to a real ACL.
+        acl_ids = {a.id for a in services_of(self.vpc, "ACL")}
+        subnet_ids = {s.id for s in services_of(self.vpc, "SUBN")}
+        acl_edges = [r for r in self.vpc.relations if r.target in acl_ids]
+        self.assertGreater(len(acl_edges), 0)
+        for rel in acl_edges:
+            self.assertIsInstance(rel, Relation)
+            self.assertIn(rel.source, subnet_ids)
+            self.assertIn(rel.target, acl_ids)
 
 
 class TestVPCDescribeSGs(unittest.TestCase):
@@ -238,28 +240,24 @@ class TestVPCDescribeSGs(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_sgs(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
     def test_sg_services_populated(self):
-        sg_services = [s for s in self.vpc.services if getattr(s, "type", None) == "SG"]
-        self.assertEqual(len(sg_services), 0)
+        self.assertGreater(len(services_of(self.vpc, "SG")), 0)
 
     def test_sg_ids_correct_prefix(self):
-        sg_services = [s for s in self.vpc.services if getattr(s, "type", None) == "SG"]
-        for sg in sg_services:
+        for sg in services_of(self.vpc, "SG"):
             self.assertTrue(sg.id.startswith("sg-"))
 
-    @unittest.skip('Not available in target VPC')
     def test_sg_contained_in_vpc(self):
-        sg_services = [s for s in self.vpc.services if getattr(s, "type", None) == "SG"]
-        first_id = sg_services[0].id
+        first_id = services_of(self.vpc, "SG")[0].id
         self.assertIn(first_id, self.vpc)
 
 
 class TestVPCDescribeEC2s(unittest.TestCase):
-    """describe_ec2s makes a real EC2 API call for instances in the VPC."""
+    """describe_ec2s makes a real EC2 API call for instances in the VPC.
+
+    The target VPC currently runs no instances; assert the call scopes cleanly
+    to an empty result rather than leaking instances from other VPCs.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -268,31 +266,8 @@ class TestVPCDescribeEC2s(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_ec2s(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_ec2_services_have_correct_type(self):
-        ec2_services = [s for s in self.vpc.services if getattr(s, "type", None) == "EC2"]
-        for ec2 in ec2_services:
-            self.assertEqual(ec2.type, "EC2")
-            self.assertTrue(ec2.id.startswith("i-"))
-
-    def test_ec2_azs_populated(self):
-        ec2_services = [s for s in self.vpc.services if getattr(s, "type", None) == "EC2"]
-        if ec2_services:
-            az_service_ids = [
-                _id
-                for az in self.vpc.availability_zones
-                for _id in az.service_ids
-            ]
-            self.assertGreater(len(az_service_ids), 0)
-
-    def test_ec2_subnets_mapping_populated(self):
-        ec2_services = [s for s in self.vpc.services if getattr(s, "type", None) == "EC2"]
-        if ec2_services:
-            all_mapped = [v for vals in self.vpc.subnets.values() for v in vals]
-            self.assertGreater(len(all_mapped), 0)
+    def test_no_ec2_instances(self):
+        self.assertEqual(len(services_of(self.vpc, "EC2")), 0)
 
 
 class TestVPCDescribeLambdas(unittest.TestCase):
@@ -305,15 +280,28 @@ class TestVPCDescribeLambdas(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_lambdas(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_lambda_services_have_correct_type(self):
-        lambda_services = [s for s in self.vpc.services if getattr(s, "type", None) == "Lambda"]
+    def test_lambda_services_populated(self):
+        lambda_services = services_of(self.vpc, "Lambda")
+        self.assertGreater(len(lambda_services), 0)
         for lmbd in lambda_services:
-            self.assertEqual(lmbd.type, "Lambda")
-            self.assertTrue(lmbd.id.startswith("arn:"))
+            self.assertEqual(lmbd.service_name, "Lambda")
+            # The stored identity is the full function ARN; .id shortens it.
+            self.assertTrue(lmbd.instance_name.startswith("arn:"))
+
+    def test_lambda_mapped_to_subnets(self):
+        # A VPC-attached function pins itself to its configured subnets.
+        lambda_arns = {l.instance_name for l in services_of(self.vpc, "Lambda")}
+        mapped = [v for vals in self.vpc.subnets.values() for v in vals]
+        self.assertTrue(any(m in lambda_arns for m in mapped))
+
+    def test_lambda_relates_to_security_group(self):
+        # Each function references its VPC security groups (lambda-arn -> sg-).
+        lambda_arns = {l.instance_name for l in services_of(self.vpc, "Lambda")}
+        sg_edges = [
+            r for r in self.vpc.relations
+            if r.source in lambda_arns and r.target.startswith("sg-")
+        ]
+        self.assertGreater(len(sg_edges), 0)
 
 
 class TestVPCDescribeRDSs(unittest.TestCase):
@@ -326,24 +314,26 @@ class TestVPCDescribeRDSs(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_rdss(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_rds_services_have_correct_type(self):
-        rds_services = [s for s in self.vpc.services if getattr(s, "type", None) == "RDS"]
+    def test_rds_services_populated(self):
+        rds_services = services_of(self.vpc, "RDS")
+        self.assertGreater(len(rds_services), 0)
         for rds in rds_services:
-            self.assertEqual(rds.type, "RDS")
+            self.assertEqual(rds.service_name, "RDS")
 
     def test_rds_azs_populated(self):
-        rds_services = [s for s in self.vpc.services if getattr(s, "type", None) == "RDS"]
-        if rds_services:
-            az_service_ids = [
-                _id
-                for az in self.vpc.availability_zones
-                for _id in az.service_ids
-            ]
-            self.assertGreater(len(az_service_ids), 0)
+        az_service_ids = [
+            _id for az in self.vpc.availability_zones for _id in az.service_ids
+        ]
+        self.assertGreater(len(az_service_ids), 0)
+
+    def test_rds_relates_to_security_group(self):
+        # Each RDS instance references its VPC security groups (rds -> sg-).
+        rds_ids = {r.id for r in services_of(self.vpc, "RDS")}
+        sg_edges = [
+            r for r in self.vpc.relations
+            if r.source in rds_ids and r.target.startswith("sg-")
+        ]
+        self.assertGreater(len(sg_edges), 0)
 
 
 class TestVPCDescribeELBsV2(unittest.TestCase):
@@ -356,25 +346,40 @@ class TestVPCDescribeELBsV2(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_elbsV2(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_elbv2_services_have_correct_type(self):
-        elb_services = [s for s in self.vpc.services if getattr(s, "type", None) == "ELBv2"]
+    def test_elbv2_services_populated(self):
+        elb_services = services_of(self.vpc, "ELBv2")
+        self.assertGreater(len(elb_services), 0)
         for elb in elb_services:
-            self.assertEqual(elb.type, "ELBv2")
-            self.assertTrue(elb.id.startswith("arn:"))
+            self.assertEqual(elb.service_name, "ELBv2")
+            # The stored identity is the full ARN; .id shortens it for display.
+            self.assertTrue(elb.instance_name.startswith("arn:"))
 
     def test_target_group_services_registered(self):
-        tg_services = [s for s in self.vpc.services if getattr(s, "type", None) == "TG"]
+        tg_services = services_of(self.vpc, "TG")
+        self.assertGreater(len(tg_services), 0)
         for tg in tg_services:
-            self.assertEqual(tg.type, "TG")
-            self.assertTrue(tg.id.startswith("arn:"))
+            self.assertEqual(tg.service_name, "TG")
+            self.assertTrue(tg.instance_name.startswith("arn:"))
+
+    def test_load_balancer_owns_target_group(self):
+        # Each load balancer relates to its target groups (lb-arn -> tg-arn).
+        lb_arns = {e.instance_name for e in services_of(self.vpc, "ELBv2")}
+        tg_arns = {t.instance_name for t in services_of(self.vpc, "TG")}
+        lb_tg_edges = [
+            r for r in self.vpc.relations
+            if r.source in lb_arns and r.target in tg_arns
+        ]
+        self.assertGreater(len(lb_tg_edges), 0)
+
+    def test_hosted_zone_registered_for_load_balancer(self):
+        self.assertGreater(len(services_of(self.vpc, "HZ")), 0)
 
 
 class TestVPCDescribeASGs(unittest.TestCase):
-    """describe_asgs makes real AutoScaling and EC2 API calls."""
+    """describe_asgs makes real AutoScaling and EC2 API calls.
+
+    No auto-scaling groups in the target VPC; assert none leak in.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -383,25 +388,15 @@ class TestVPCDescribeASGs(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_asgs(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_asg_services_have_correct_type(self):
-        asg_services = [s for s in self.vpc.services if getattr(s, "type", None) == "ASG"]
-        for asg in asg_services:
-            self.assertEqual(asg.type, "ASG")
-
-    def test_asg_az_entries_are_strings(self):
-        asg_services = [s for s in self.vpc.services if getattr(s, "type", None) == "ASG"]
-        if asg_services:
-            for az in self.vpc.availability_zones:
-                for sid in az.service_ids:
-                    self.assertIsInstance(sid, str)
+    def test_no_asgs(self):
+        self.assertEqual(len(services_of(self.vpc, "ASG")), 0)
 
 
 class TestVPCDescribeEKSs(unittest.TestCase):
-    """describe_ekss makes real EKS API calls."""
+    """describe_ekss makes real EKS API calls.
+
+    No EKS clusters in the target VPC; assert none leak in.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -410,15 +405,8 @@ class TestVPCDescribeEKSs(unittest.TestCase):
         cls.vpc = VPC(region="us-east-1", id=cls.vpc_id)
         cls.vpc.describe_ekss(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-    def test_eks_services_have_correct_type(self):
-        eks_services = [s for s in self.vpc.services if getattr(s, "type", None) == "EKS"]
-        for eks in eks_services:
-            self.assertEqual(eks.type, "EKS")
-            self.assertTrue(eks.id.startswith("arn:"))
+    def test_no_eks_clusters(self):
+        self.assertEqual(len(services_of(self.vpc, "EKS")), 0)
 
 
 class TestVPCRelationsIntegrity(unittest.TestCase):
@@ -434,9 +422,8 @@ class TestVPCRelationsIntegrity(unittest.TestCase):
         cls.vpc.describe_sgs(cls.context)
         cls.vpc.describe_acls(cls.context)
 
-    @classmethod
-    def tearDownClass(cls):
-        pass
+    def test_relations_present(self):
+        self.assertGreater(len(self.vpc.relations), 0)
 
     def test_all_relations_are_named_tuples(self):
         for rel in self.vpc.relations:

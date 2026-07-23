@@ -1,0 +1,2 @@
+{"wand_version":"1","service":"elbv2","captured":"2026-07-23"}
+{"TargetHealthDescriptions":[{"Target":{"Id":"10.0.3.237","Port":5000,"AvailabilityZone":"us-east-1c"},"HealthCheckPort":"5000","TargetHealth":{"State":"healthy"},"AdministrativeOverride":{"State":"no_override","Reason":"AdministrativeOverride.NoOverride","Description":"No override is currently active on target"}}]}

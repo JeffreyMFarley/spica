@@ -1,2 +1,2 @@
-{"wand_version":"1","service":"cloudwatch","captured":"2026-07-21"}
-{"Label":"BucketSizeBytes","Datapoints":[{"Timestamp":"2026-07-19T12:34:00-04:00","Average":3501569.0,"Unit":"Bytes"}]}
+{"wand_version":"1","service":"cloudwatch","captured":"2026-07-23"}
+{"Label":"BucketSizeBytes","Datapoints":[{"Timestamp":"2026-07-21T14:43:00-04:00","Average":3501569.0,"Unit":"Bytes"}]}

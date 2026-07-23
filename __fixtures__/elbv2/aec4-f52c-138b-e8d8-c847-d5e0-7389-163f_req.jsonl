@@ -1,0 +1,2 @@
+{"wand_version":"1","service":"elbv2","captured":"2026-07-23"}
+{"operation":"DescribeTargetHealth","params":{"TargetGroupArn":"arn:aws:elasticloadbalancing:us-east-1:652840558528:targetgroup/nlb-names-tg/e8ec8d93e181c7d6"},"service":"elbv2"}

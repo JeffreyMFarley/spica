@@ -1,2 +1,2 @@
-{"wand_version":"1","service":"cloudwatch","captured":"2026-07-21"}
+{"wand_version":"1","service":"cloudwatch","captured":"2026-07-23"}
 {"operation":"ListMetrics","params":{"Dimensions":[{"Name":"BucketName","Value":"lovable-tfstate-tulip"}],"MetricName":"BucketSizeBytes","Namespace":"AWS/S3"},"service":"cloudwatch"}
