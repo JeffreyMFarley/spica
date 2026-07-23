@@ -1,2 +1,2 @@
-{"wand_version":"1","service":"s3","captured":"2026-07-21"}
+{"wand_version":"1","service":"s3","captured":"2026-07-23"}
 {"operation":"GetBucketLocation","params":{"Bucket":"lovable-tfstate-tulip"},"service":"s3"}

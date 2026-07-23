@@ -1,2 +1,2 @@
-{"wand_version":"1","service":"rds","captured":"2026-07-21"}
+{"wand_version":"1","service":"rds","captured":"2026-07-23"}
 {"operation":"DescribeDBInstances","params":{},"service":"rds"}
