@@ -22,10 +22,16 @@ Modes (``WAND_MODE``, default ``ci``):
 
 * ``ci`` — replay only. A miss raises :class:`WandFixtureMiss`.
 * ``capture`` — call real AWS, strip response noise, write the fixture pair.
+* ``livetest`` — call real AWS, compare against the stored fixture, and record
+  any mismatch to ``livetest_divergences.jsonl`` for ``wand doctor`` to classify.
 * ``passthrough`` — call real AWS, write nothing.
 
-Capture is necessarily Python-side (it makes the real call); replay reads the
-committed files directly, so ``ci`` runs need no live credentials and no proxy.
+Capture and livetest are necessarily Python-side (they make the real call);
+replay reads the committed files directly, so ``ci`` runs need no live
+credentials and no proxy. Because this shim bypasses the Go proxy entirely, it
+must reproduce the proxy's on-disk formats itself — the fixture pair, the
+``index.json`` entry, the ``access.jsonl`` mark log (for ``wand tidy``), and the
+``livetest_divergences.jsonl`` log (for ``wand doctor``).
 
 Note the module is named ``boto3_shim`` (not ``boto3``) so it never shadows the
 real ``boto3`` package when its directory is on ``sys.path``.
@@ -152,6 +158,36 @@ def _append_access(service, digest, missing=False):
         fh.write(line + "\n")
 
 
+def _canonical(response):
+    """Stable serialization for livetest comparison and divergence records.
+
+    sort_keys avoids false divergences from mere key-order differences; the
+    separators match how fixtures are stored so equal payloads compare equal.
+    """
+    return json.dumps(
+        response, sort_keys=True, separators=(",", ":"), default=_json_default
+    )
+
+
+def _append_divergence(service, digest, live, fixture):
+    """Record a livetest mismatch for ``wand doctor``.
+
+    Mirrors the Go store's AppendDivergence: one compact JSON object per line in
+    ``__fixtures__/livetest_divergences.jsonl`` matching proxy/store.go's
+    Divergence struct (``service``, ``hash``, ``live``, ``fixture``). boto3
+    livetest bypasses the Go proxy, so without this doctor sees no AWS drift.
+    """
+    os.makedirs(FIXTURES_ROOT, exist_ok=True)
+    entry = {"service": service, "hash": digest, "live": live, "fixture": fixture}
+    line = json.dumps(entry, separators=(",", ":"))
+    with open(
+        os.path.join(FIXTURES_ROOT, "livetest_divergences.jsonl"),
+        "a",
+        encoding="utf-8",
+    ) as fh:
+        fh.write(line + "\n")
+
+
 def _replay_metadata():
     # boto3 internals (and some callers) expect this to exist.
     return {"HTTPStatusCode": 200, "RequestId": "wand-replay"}
@@ -191,6 +227,16 @@ def intercept(mode=None):
             _write_fixture(service, digest, request, _strip_noise(response))
             # A freshly captured fixture is reachable by definition.
             _append_access(service, digest)
+        elif resolved == "livetest":
+            # Call real AWS (above), then compare against the stored fixture and
+            # record any mismatch for `wand doctor` to classify. A missing
+            # fixture is skipped, matching the Go proxy's livetest branch.
+            cached = _read_fixture(service, digest)
+            if cached is not None:
+                live = _canonical(_strip_noise(response))
+                fixture = _canonical(cached)
+                if live != fixture:
+                    _append_divergence(service, digest, live, fixture)
         return response
 
     botocore.client.BaseClient._make_api_call = _patched
